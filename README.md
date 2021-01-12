@@ -55,3 +55,9 @@ Implement signup/authentication
   - Check that stonks/buy and stonks/sell are unauthorized without Authorization header
   - Test with Authorization header and should be successful.
   `curl -H 'Content-Type: application/json' -H 'Authorization: Bearer {trader id}' -d '{ "stonk": "stonk2", "shares": 1 }' http://localhost:5434/stonks/buy`
+
+Create client application that calls the stonks app.
+
+Log endpoint calls for billing
+Stripe setup
+UI
