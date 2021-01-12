@@ -1,4 +1,6 @@
 import express, { Request } from 'express';
+import passport from 'passport';
+import HeaderAPIKeyStrategy from 'passport-headerapikey';
 import PouchDB from 'pouchdb'
 import MemoryAdapter from 'pouchdb-adapter-memory';
 
@@ -15,12 +17,14 @@ interface Order {
   shares: number;
 }
 
-interface Trader extends Doc {
+interface Trader {
   monies: number;
   stonks: { [key: string]: number }
 }
 
-interface Stonk extends Doc {
+interface TraderDoc extends Trader, Doc { }
+
+interface Stonk {
   name: string;
   price: number;
   shares: number;
@@ -33,6 +37,31 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
   const app = express();
 
   app.use(express.json());
+  app.use(passport.initialize());
+
+  passport.use('headerapikey', new HeaderAPIKeyStrategy({
+    header: 'Authorization', // This is the header that we pass the token in.
+    prefix: 'Bearer '
+  }, true, async (apikey, done) => {
+    try {
+      const trader = await tradersdb.get(apikey);
+      return done(null, trader);
+    } catch (err) {
+      console.log(err);
+      done(err);
+    }
+  }));
+
+  // string generic because serializing/deserializing on id: string.
+  passport.serializeUser<string>((user, done) => {
+    done(null, (user as TraderDoc)._id);
+  });
+
+  passport.deserializeUser<string>(async (userId, done) => {
+    const trader = await tradersdb.get(userId);
+    done(null, trader);
+  });
+
   await tradersdb.put({ _id: 'stonkmaster', monies: 1000, stonks: {} });
   await stonksdb.bulkDocs([
     { _id: 'stonk1', name: 'Macdongls', price: 100, shares: 100 },
@@ -42,7 +71,22 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
     { _id: 'stonk5', name: 'Nutflex', price: 100, shares: 100 },
   ]);
 
-  app.get('/stonks', async (req, res) => {
+  app.post('/signup', async (req, res) => {
+    try {
+      const trader = {
+        monies: 1000,
+        stonks: {}
+      };
+      const doc = await tradersdb.post(trader);
+      res.send(doc);
+    } catch (err) {
+      console.error(err);
+      res.status(500);
+      res.send({ message: 'Internal Server Error' });
+    }
+  });
+
+  app.get('/stonks', passport.authenticate('headerapikey'), async (req, res) => {
     try {
       const stonksRes = await stonksdb.allDocs();
       res.json({ stonks: stonksRes.rows });
@@ -53,13 +97,11 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
     }
   });
 
-  app.post('/stonks/buy', async (req, res) => {
+  app.post('/stonks/buy', passport.authenticate('headerapikey'), async (req, res) => {
     try {
       const order = getOrder(req);
-      const [ trader, stonk ] = await Promise.all<Trader, Stonk>([
-        tradersdb.get('stonkmaster'),
-        stonksdb.get(order.stonk)
-      ]);
+      const trader = req.user as Trader;
+      const stonk = await stonksdb.get(order.stonk);
 
       // Make sure trader has enough money
       const cost = stonk.price * order.shares
@@ -97,13 +139,11 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
     }
   });
 
-  app.post('/stonks/sell', async (req, res) => {
+  app.post('/stonks/sell', passport.authenticate('headerapikey'), async (req, res) => {
     try {
       const order = getOrder(req);
-      const [trader, stonk] = await Promise.all<Trader, Stonk>([
-        tradersdb.get('stonkmaster'),
-        stonksdb.get(order.stonk)
-      ]);
+      const trader = req.user as Trader;
+      const stonk = await stonksdb.get(order.stonk);
 
       // Make sure trader has enough shares
       if (!trader.stonks[order.stonk] || trader.stonks[order.stonk] < order.shares) {
