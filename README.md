@@ -68,6 +68,7 @@ It will live within the same project but will run as a separate script. Will be 
 `npm install superagent && npm install --save-dev @types/superagent`
 - Refactor interfaces to their own file so they can be used by both programs.
 - Implement buying and selling
+- Adjust stock prices when buying and selling. Buying makes price go up more than selling makes price fall, so stonk prices should rise overall.
 
 
 Log endpoint calls for billing

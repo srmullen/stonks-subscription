@@ -48,7 +48,7 @@ async function orderRandomStonk(trader: TraderDoc, stonks: StonkDoc[]) {
   try {
     const stonk = choose(stonks);
     const maxShares = getMaxShares(stonk, trader.monies);
-    console.log(maxShares);
+    
     if (maxShares > 0) {
       const order = {
         stonk: stonk._id,
@@ -92,5 +92,5 @@ async function orderRandomStonk(trader: TraderDoc, stonks: StonkDoc[]) {
     const stonks = await getStonks(id);
     orderRandomStonk(trader, stonks);
     console.log(trader);
-  }, 500);
+  }, 50);
 })();

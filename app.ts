@@ -113,6 +113,7 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
       trader.monies -= cost;
       // Reduce the number of stonks for sale
       stonk.shares -= order.shares;
+      stonk.price *= 1.02;
 
       // NOTE: This isn't done as a transaction. Stonks don't care. Readl application would want to make sure that if any of these updates fail, then they all do.
       await Promise.all([
@@ -144,6 +145,7 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
       trader.monies += payment;
       trader.stonks[order.stonk] -= order.shares;
       stonk.shares += order.shares;
+      stonk.price *= 0.99;
 
       // NOTE: This isn't done as a transaction. Stonks don't care. Readl application would want to make sure that if any of these updates fail, then they all do.
       await Promise.all([
