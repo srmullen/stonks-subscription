@@ -3,32 +3,11 @@ import passport from 'passport';
 import HeaderAPIKeyStrategy from 'passport-headerapikey';
 import PouchDB from 'pouchdb'
 import MemoryAdapter from 'pouchdb-adapter-memory';
+import { Trader, TraderDoc, Stonk, Order } from './interfaces';
 
 PouchDB.plugin(MemoryAdapter);
 
 const PORT = 5434;
-
-interface Doc {
-  _id: string;
-}
-
-interface Order {
-  stonk: string;
-  shares: number;
-}
-
-interface Trader {
-  monies: number;
-  stonks: { [key: string]: number }
-}
-
-interface TraderDoc extends Trader, Doc { }
-
-interface Stonk {
-  name: string;
-  price: number;
-  shares: number;
-}
 
 const tradersdb = new PouchDB<Trader>('traders', { adapter: 'memory' });
 const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
@@ -86,10 +65,20 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
     }
   });
 
+  app.get('/trader', passport.authenticate('headerapikey'), (req, res) => {
+    res.send(req.user);
+  });
+
+  app.get('/stonk/:id', async (req, res) => {
+    const stonk = await stonksdb.get(req.params.id);
+    res.send(stonk);
+  });
+
   app.get('/stonks', passport.authenticate('headerapikey'), async (req, res) => {
     try {
-      const stonksRes = await stonksdb.allDocs();
-      res.json({ stonks: stonksRes.rows });
+      const stonksRes = await stonksdb.allDocs({ include_docs: true });
+      const stonks = stonksRes.rows.map(res => res.doc);
+      res.json({ stonks });
     } catch (err) {
       console.error(err);
       res.status(500);
@@ -131,7 +120,7 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
         stonksdb.put(stonk)
       ]);
 
-      res.send(trader);
+      res.json({ trader });
     } catch(err) {
       console.error(err);
       res.status(err.status || 500);
@@ -162,7 +151,7 @@ const stonksdb = new PouchDB<Stonk>('stonks', { adapter: 'memory' });
         stonksdb.put(stonk)
       ]);
 
-      res.send(trader);
+      res.json({ trader });
     } catch (err) {
       console.error(err);
       res.status(err.status || 500);

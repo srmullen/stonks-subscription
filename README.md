@@ -56,7 +56,19 @@ Implement signup/authentication
   - Test with Authorization header and should be successful.
   `curl -H 'Content-Type: application/json' -H 'Authorization: Bearer {trader id}' -d '{ "stonk": "stonk2", "shares": 1 }' http://localhost:5434/stonks/buy`
 
+# vanilla4
+
 Create client application that calls the stonks app.
+
+It will live within the same project but will run as a separate script. Will be it's own process. Start up many at once. For real high frequency stonk trading, user would write their own scripts to determine how to trade.
+
+- create stonktrader.ts file.
+- add a script to package.json to run `stonktrader.ts`
+- call the signup endpoint. use superagent
+`npm install superagent && npm install --save-dev @types/superagent`
+- Refactor interfaces to their own file so they can be used by both programs.
+- Implement buying and selling
+
 
 Log endpoint calls for billing
 Stripe setup
